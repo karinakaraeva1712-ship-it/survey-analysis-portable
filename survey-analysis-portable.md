@@ -1,116 +1,116 @@
 ---
 name: survey-analysis-portable
-description: Создание аналитического отчёта по выгрузке опроса (xlsx): парсинг, распределения, корреляции, кросс-сегменты, открытые ответы, HTML-отчёт. Работает в любом ИИ — ChatGPT/GPTs, Claude Code, Cursor,程小帮 — с шеллом, с code interpreter или вообще без исполнения кода. Также для правки/перевода существующего отчёта (RU/EN).
+description: Создание аналитического отчёта по выгрузке опроса (xlsx): парсинг, распределения, корреляции, кросс-сегменты, открытые ответы, HTML-отчёт. Работает в любом ИИ — ChatGPT/GPTs, Claude Code, Cursor,程小帮. / Build an analytical report from a survey export (.xlsx): parsing, distributions, correlations, cross-segments, open answers, HTML report. Works in any AI — ChatGPT/GPTs, Claude Code, Cursor, Chengxiaobang.
 ---
 
-# Аналитический отчёт по опросу — портируемый скилл (survey-analysis-portable)
+# Analytical survey report — portable skill (survey-analysis-portable)
 
-> Один и тот же скилл работает в разных ИИ, потому что он **не зависит от платформенного загрузчика скиллов**:
-> это самодостаточный документ с инструкциями и встроенными скриптами. Любая LLM следует ему, если получила
-> этот текст (вставлен в Instructions, приложен к проекту, установлен как skill, добавлен в .cursor/rules и т. п.).
+> The same skill works across different AIs because it **does not depend on any platform's skill loader**:
+> it is a self-contained document with instructions and embedded scripts. Any LLM follows it once it receives
+> this text (pasted into Instructions, attached to a project, installed as a skill, added to `.cursor/rules`, etc.).
 
-## Исполнение (самое важное — не спрашивай, действуй)
+## Execution (most important — don't ask, act)
 
-- **Никогда не задавай уточняющих вопросов и не предлагай вариантов действий.** Не спрашивай «сделать полный отчёт или сначала аудит?», «на каком языке?», «какой формат?». Приступай сразу.
-- **По умолчанию выполняешь полный цикл** (см. «Рабочий процесс» для твоего окружения) и выдаёшь готовый HTML-отчёт на английском (RU — только если явно попросили в запросе).
-- Если получил и xlsx, и текст скилла — это уже инструкция начать: шаг 1 — прочитать выгрузку, шаг 2 — выполнить.
-- Замечания о качестве данных, ограничения выборки, неоднозначности вопросов — **внутрь отчёта** (раздел «Ограничения выборки»), а не в чат.
-- Единственный случай, когда можно остановиться и спросить, — файл вообще не читается (битый, не тот формат, данных нет). Всё остальное — выполнение.
-- В ChatGPT/code interpreter сразу используй Путь B: скрипты выполняются inline (openpyxl/pandas/scipy ставятся через pip, если нет). Шаги с шеллом/Chrome пропускаются без комментариев.
-- В конце отчёта напиши, что выполнил и какие проверки прошёл, одной строкой в чате — кратко.
+- **Never ask clarifying questions or offer options.** Don't ask "full report or audit first?", "which language?", "what format?" — start right away.
+- **By default run the full pipeline** (see "Workflow" for your environment) and deliver a ready HTML report in English (Russian only if explicitly requested).
+- Receiving an xlsx together with this skill text is already an instruction to start: step 1 — read the export, step 2 — execute.
+- Data-quality notes, sample limitations and ambiguous questions go **inside the report** ("Sample limitation" section), not into the chat.
+- The only case where you may stop and ask — the file cannot be read at all (corrupted, wrong format, no data). Everything else is execution.
+- In ChatGPT / code interpreter use Path B right away: run the scripts inline (install openpyxl/pandas/scipy via pip if missing). Skip shell/Chrome steps silently.
+- At the end, write one short line in the chat about what you did and which checks passed.
 
-## Как подключить в разных ИИ
+## How to load in different AIs
 
-- **程小帮 / Claude Code / Cursor (агентные системы):** каталог `.agents/skills/survey-analysis-portable/` — установи как skill (frontmatter распознается). Скрипты уже в `scripts/`.
-- **ChatGPT / GPTs / Projects:** вставь тело `survey-analysis-portable.md` (бандл, скрипты уже внутри) в Instructions кастомного GPT или приложи к проекту и пиши «следуй этому скиллу». Frontmatter (YAML-шапку) ChatGPT игнорирует — это нормально.
-- **Любой другой ИИ:** приложи файл/текст и попроси выполнить инструкции.
+- **Chengxiaobang / Claude Code / Cursor (agent systems):** install the `.agents/skills/survey-analysis-portable/` folder as a skill (frontmatter is recognized). Scripts are already in `scripts/`.
+- **ChatGPT / GPTs / Projects:** paste the body of `survey-analysis-portable.md` (the bundle, scripts inside) into a custom GPT's Instructions, or attach it to a project and write "follow this skill". ChatGPT ignores the YAML frontmatter — that's fine.
+- **Any other AI:** attach the file or text and ask it to follow the instructions.
 
-## Входные данные
+## Input
 
-1. Выгрузка опроса xlsx (формат: первая строка — заголовок, колонки вида `2. Choice – текст`, `5. Choice – вопрос: вариант`, `17. Question – текст`; мультивыбор — `TRUE`/`FALSE`). Если формат другой — адаптируй парсер, сохранив выходной контракт.
-2. Дизайн анкеты (необязательно) — для смысла и маршрутизации.
-3. Пример отчёта (необязательно) — референс стиля.
+1. Survey export xlsx (format: first row is the header; columns look like `2. Choice – text`, `5. Choice – question: option`, `17. Question – text`; multi-select values are `TRUE`/`FALSE`). If the format differs — adapt the parser, keeping the output contract.
+2. Questionnaire design (optional) — for meaning and routing.
+3. Example report (optional) — style reference.
 
-## Определи окружение (выбери путь)
+## Detect the environment (pick a path)
 
-- **Путь A — есть шелл** (терминал, uv/python, chrome): полный цикл, см. «Рабочий процесс A».
-- **Путь B — только Python** (ChatGPT code interpreter, Jupyter): скрипты выполни inline; при отсутствии пакетов — `pip install openpyxl pandas scipy`; шаги с шеллом/Chrome пропусти.
-- **Путь C — нет исполнения кода:** читай выгрузку напрямую, посчитай распределения и корреляции сам, отчёт — текстом/Markdown/HTML в ответе. Правила дизайна и проверок ниже применимы так же.
+- **Path A — shell available** (terminal, uv/python, chrome): full pipeline, see "Workflow A".
+- **Path B — Python only** (ChatGPT code interpreter, Jupyter): run the scripts inline; if packages are missing — `pip install openpyxl pandas scipy`; skip the shell/Chrome steps.
+- **Path C — no code execution:** read the export directly, compute distributions and correlations yourself, deliver the report as text/Markdown/HTML in the answer. The design and verification rules below apply the same.
 
-## Рабочий процесс A (шелл)
+## Workflow A (shell)
 
-1. Сохрани скрипты из `scripts/` (parse_survey.py, analyze.py, report_gen.py) в рабочую папку.
-2. Парсинг:
+1. Save the scripts from `scripts/` (parse_survey.py, analyze.py, report_gen.py) into a working folder.
+2. Parse:
    ```bash
-   uv run --with openpyxl python parse_survey.py <выгрузка.xlsx> survey.json
+   uv run --with openpyxl python parse_survey.py <export.xlsx> survey.json
    ```
-   Контракт: `{n, meta_columns, questions, options, scale_map, header, data}`.
-3. Изучи дизайн анкеты: маршрутизацию (базы подвопросов считаются по данным), типы вопросов, сегменты.
-4. Анализ:
+   Contract: `{n, meta_columns, questions, options, scale_map, header, data}`.
+3. Study the questionnaire design: routing (question bases are computed from data), question types, segments.
+4. Analyze:
    ```bash
    uv run --with scipy python analyze.py survey.json --outcome <Q_N_X> --out results.json
    ```
-   `--outcome` — код ключевого флага исхода (например, флаг «использовали продукт»). Результат: распределения, корреляции (r, phi, Cramér's V), конверсия исхода по сегментам, открытые ответы с ID респондентов.
-5. Собери отчёт: запусти базовый генератор, затем **отредактируй** его копию — добавь нарратив, переводы (TRANSL), цитаты, гипотезы, рекомендации — и перезапусти:
+   `--outcome` — code of the key outcome flag (e.g., a "used the product" flag). Result: distributions, correlations (r, phi, Cramér's V), outcome rate by segment, open answers with respondent IDs.
+5. Build the report: run the base generator, then **edit its copy** — add narrative, translations (TRANSL), quotes, hypotheses, recommendations — and re-run:
    ```bash
    python report_gen.py --survey survey.json --results results.json --out report.html
    ```
-   Язык отчёта — EN по умолчанию (RU — по явному запросу). Числа — только из данных.
-6. Проверь и отдай: дословность цитат (поиск фрагмента в survey.json), баланс тегов, 0 кириллицы в EN-версии, подписи ≤ 40 символов; рендер в headless Chrome — если доступен (иначе пропусти, HTML без JS всё равно откроется везде). Объяви артефакт.
+   Report language — EN by default (RU on explicit request). Numbers — only from the data.
+6. Verify and deliver: verbatim quotes (search the fragment in survey.json), tag balance, 0 Cyrillic in the EN version, labels ≤ 40 chars; headless Chrome render — if available (otherwise skip; the JS-free HTML opens everywhere). Declare the artifact.
 
-## Дизайн отчёта (обязательный минимум)
+## Report design (minimum required)
 
-1. Обложка: теги, заголовок, 1 абзац сути, 4 ключевые метрики.
-2. Ключевые выводы: 3 карточки + карта решений P0/P1/P2 + ограничение выборки.
-3. Методология и выборка: n-карточки, 2-3 диаграммы (устройства, сегменты), «как читать свидетельства» (поведение > названное > заявленное > концепт).
-4. Тематические разделы (01…N): статистика → выводы → цитаты → блок «So what».
-5. Корреляции: только результат — компактная таблица «Фактор / что на практике / сила» (5–9 строк). Полные таблицы — в свёрнутый `<details>`.
-6. Кросс-сегменты: конверсия исхода по сегментам, сгруппированная (высокая/средняя/зоны потерь).
-7. Открытые ответы: карточки с темами (полоски-доли) + «Strongest quotes» (дословно, без повторов по смыслу).
-8. Проверка гипотез: таблица «Гипотеза / Сила / Продуктовое чтение», вердикты по цвету: Confirmed — зелёный, Partially — жёлтый, Rejected — красный.
-9. Рекомендации: P0/P1/P2.
-10. Приложение: каждый вопрос в `<details>` с распределением полосками.
-11. Навигация — только боковое меню слева (sticky). Верхние табы не добавлять.
-12. Под каждым графиком — `<p class="decision-note"><b>How to read:</b> …` с числами.
-13. Каждый раздел заканчивается `<div class="sowhat"><b>So what</b> …`.
+1. Cover: tags, title, 1-paragraph essence, 4 key metrics.
+2. Key findings: 3 cards + P0/P1/P2 decision map + sample limitation.
+3. Methodology & sample: n-cards, 2–3 charts (devices, segments), "how to read the evidence" (behavior > stated > claimed > concept).
+4. Thematic sections (01…N): statistics → findings → quotes → "So what" block.
+5. Correlations: result only — a compact table "Factor / what happens in practice / strength" (5–9 rows). Full tables go into a collapsed `<details>`.
+6. Cross-segments: outcome rate by segment, grouped (high / medium / loss zones).
+7. Open answers: theme cards (share bars) + "Strongest quotes" (verbatim, no duplicates in meaning).
+8. Hypothesis check: table "Hypothesis / Strength / Product reading", verdicts by color: Confirmed — green, Partially — yellow, Rejected — red.
+9. Recommendations: P0/P1/P2.
+10. Appendix: every question in a `<details>` with a bar distribution.
+11. Navigation — a left sticky sidebar only. No top tabs.
+12. Under each chart — `<p class="decision-note"><b>How to read:</b> …` with numbers.
+13. Each section ends with `<div class="sowhat"><b>So what</b> …`.
 
-## Жёсткие правила
+## Hard rules
 
-- **Цитаты — дословно** из выгрузки: сохраняй опечатки и пунктуацию респондента, не «причёсывай». Проверка — поиск фрагмента цитаты в данных. Атрибуция (сегмент в подписи) — только если проверен по строке респондента; не проверен — пиши просто код вопроса.
-- **Базы вопросов** — маршрутизация даёт разный n; база = строки, где у респондента есть значение хотя бы одной колонки вопроса. Доля считается от базы вопроса.
-- **Флаги — строки** `"1"`/`"0"` или `TRUE`/`FALSE`; шкалы-сетки — ID варианта, без маппинга «среднее из ID» бессмысленно.
-- **Подписи графиков ≤ ~40 символов** (обрезай по границе слова с многоточием), значение в подпись обязательно (`Label — 71%`), не более 7 полос на графике.
-- **В EN-версии 0 кириллицы**, включая приложение; ветки «Другое[…]» схлопываются в «Other (free-text answers)».
-- В готовом HTML не должно быть сырых литералов вида `{sowhat(` / `{quote_block(` — все секции-фрагменты собираются f-строками.
-- Числа в отчёте — только из данных, не из памяти.
+- **Quotes verbatim** from the export: preserve typos and punctuation, don't "polish" the respondent's text. Verification — search the quote fragment in the data. Attribution (segment in the caption) — only if verified against that respondent's row; otherwise just write the question code.
+- **Question bases** — routing gives different n; the base = rows where the respondent has a value in at least one column of the question. Shares are computed from the question base.
+- **Flags are strings** (`"1"`/`"0"` or `TRUE`/`FALSE`); grid scales are stored as option IDs — without mapping, an "average of IDs" is meaningless.
+- **Chart labels ≤ ~40 chars** (truncate at a word boundary with an ellipsis), the value goes into the label (`Label — 71%`), no more than 7 bars per chart.
+- **0 Cyrillic in the EN version**, including the appendix; "Other[…]" branches collapse into "Other (free-text answers)".
+- The final HTML must not contain raw literals like `{sowhat(` / `{quote_block(` — all section fragments are assembled with f-strings.
+- Numbers in the report — only from the data, never from memory.
 
-## Проверки (деградируют по окружению)
+## Verification (degrades by environment)
 
-- Дословность каждой цитаты: `python -c` поиск фрагмента в `survey.json`.
-- Баланс тегов: `<div>` открыто = закрыто (регэксп по `<div[ >]` и `</div>`).
-- 0 кириллицы в EN: `grep -P '[а-яА-ЯёЁ]' report.html`.
-- Подписи: `max len` по строкам с «—» в данных графиков ≤ 40.
-- Рендер (только путь A): `chrome --headless=new --screenshot …` — опционально.
+- Verbatim quotes: `python -c` fragment search in `survey.json`.
+- Tag balance: `<div>` opened = closed (regex over `<div[ >]` and `</div>`).
+- 0 Cyrillic in EN: `grep -P '[а-яА-ЯёЁ]' report.html`.
+- Labels: max length of lines containing "—" in chart data ≤ 40.
+- Render (Path A only): `chrome --headless=new --screenshot …` — optional.
 
-## Скрипты
+## Scripts
 
-В каталоге скилла: `scripts/parse_survey.py`, `scripts/analyze.py`, `scripts/report_gen.py`.
-Они же встроены в одностраничный бандл `survey-analysis-portable.md` (для ChatGPT/вложений).
-`report_gen.py` — базовый генератор без внешних зависимостей (CSS-полоски вместо Chart.js): отдаёт каркас отчёта; нарратив, переводы, цитаты, гипотезы добавляет ИИ в копию скрипта.
+In the skill folder: `scripts/parse_survey.py`, `scripts/analyze.py`, `scripts/report_gen.py`.
+They are also embedded in the single-file bundle `survey-analysis-portable.md` (for ChatGPT / attachments).
+`report_gen.py` — base generator with no external dependencies (CSS bars instead of Chart.js): it produces the report skeleton; narrative, translations, quotes and hypotheses are added by the AI into a copy of the script.
 
-## Тесты
+## Tests
 
-- Простая: «сделай отчёт по опросу» + xlsx → в любом окружении парсер+анализ+HTML.
-- Сложная: + дизайн анкеты + пример отчёта → полный отчёт с сегментами и классификацией открытых ответов.
-- Не должна срабатывать: «напиши отчёт о продажах» без данных опроса.
+- Simple: "make a report from this survey" + xlsx → parser + analysis + HTML in any environment.
+- Complex: + questionnaire design + example report → full report with segments and open-answer classification.
+- Must not trigger: "write a sales report" without survey data.
 
 
 ---
 
-# Встроенные скрипты (сохрани в рабочую папку и выполняй)
+# Embedded scripts (save into a working folder and run)
 
-> Для ChatGPT/GPTs/Projects: вставь весь этот файл в Instructions или приложи к проекту.
-> Для агентных систем (程小帮/Claude Code/Cursor) используй каталог .agents/skills/survey-analysis-portable/.
+> For ChatGPT/GPTs/Projects: paste this whole file into Instructions or attach it to a project.
+> For agent systems (Chengxiaobang/Claude Code/Cursor) use the .agents/skills/survey-analysis-portable/ folder.
 
 ## parse_survey.py
 ```python
