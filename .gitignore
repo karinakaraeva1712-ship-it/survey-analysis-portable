@@ -1,0 +1,17 @@
+# survey data — never commit
+*.xlsx
+*.xls
+*.csv
+
+# generated analysis artifacts
+survey.json
+results.json
+
+# example reports with respondent data (verbatim quotes, segments)
+*yandex-delivery-offline-report*.html
+report.html
+
+# OS / editor noise
+.DS_Store
+__pycache__/
+*.pyc
